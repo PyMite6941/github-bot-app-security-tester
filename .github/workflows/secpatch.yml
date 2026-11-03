@@ -1,0 +1,62 @@
+name: SecPatch - Automated Vulnerability Scanning
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  schedule:
+    - cron: "0 2 * * *"  # daily scan
+
+jobs:
+  secpatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install secpatch
+        run: |
+          pip install -e .
+          pip install pytest
+
+      - name: Scan for vulnerabilities
+        id: scan
+        run: |
+          secpatch scan . --severity high --format json > scan-results.json || true
+
+      - name: Show findings summary
+        run: |
+          python - <<'EOF'
+          import json, sys
+          try:
+              results = json.load(open("scan-results.json"))
+          except FileNotFoundError:
+              results = []
+          high = [f for f in results if f.get("severity") == "high"]
+          critical = [f for f in results if f.get("severity") == "critical"]
+          print(f"Found {len(results)} findings: {len(critical)} critical, {len(high)} high")
+          if critical:
+              print("::error::Critical vulnerabilities detected - review scan-results.json")
+              sys.exit(1)
+          EOF
+
+      - name: Upload scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: secpatch-scan-results
+          path: scan-results.json
+
+      # Optional: auto-draft patches when an AI key is configured.
+      # Add SECPATCH_AI_API_KEY (and optionally SECPATCH_AI_BASE_URL, SECPATCH_AI_MODEL)
+      # as repository secrets to enable this step.
+      - name: Draft and validate patches (AI)
+        if: env.SECPATCH_AI_API_KEY != ''
+        run: |
+          secpatch patch . --ai --test-cmd "pytest -q" --draft-only > patch-drafts.txt || true

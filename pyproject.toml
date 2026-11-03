@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secpatch"
+version = "0.1.0"
+description = "CI/CD-friendly tool that finds security vulnerabilities, drafts patches, and validates them before they reach production."
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "PyMite6941" }]
+license = { text = "MIT" }
+keywords = ["devsecops", "security", "sast", "patch", "cicd", "ai", "github"]
+
+[project.scripts]
+secpatch = "secpatch.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+secpatch = ["py.typed"]
