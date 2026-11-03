@@ -3,6 +3,7 @@ site_description: Automated Vulnerability Patching — DevSecOps AI
 site_url: https://pymite6941.github.io/github-bot-app-security-tester/
 repo_url: https://github.com/PyMite6941/github-bot-app-security-tester
 edit_uri: edit/master/docs/
+docs_dir: docs
 copyright: Copyright &copy; 2026 PyMite6941
 
 theme:

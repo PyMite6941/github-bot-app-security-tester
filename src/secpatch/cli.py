@@ -126,7 +126,10 @@ def cmd_ci(args) -> int:
     if findings:
         print(f"CI: {len(findings)} vulnerability(s) at {args.severity}+ severity:")
         print(_print_findings(findings))
-        return 1
+        if args.fail_on_findings:
+            return 1
+        print("CI: findings reported (--fail-on-findings not set, not failing build).")
+        return 0
     print("CI: no vulnerabilities found.")
     return 0
 
@@ -220,10 +223,12 @@ def build_parser() -> argparse.ArgumentParser:
                            help="days of history to scan")
     p_commits.set_defaults(func=cmd_commits)
 
-    p_ci = sub.add_parser("ci", help="CI mode: exit 1 if vulnerabilities found")
+    p_ci = sub.add_parser("ci", help="CI mode: report vulnerabilities found")
     p_ci.add_argument("path")
     p_ci.add_argument("--severity", default="high",
                       choices=["info", "low", "medium", "high", "critical"])
+    p_ci.add_argument("--fail-on-findings", action="store_true",
+                      help="exit 1 when findings are detected (strict mode)")
     p_ci.set_defaults(func=cmd_ci)
 
     p_test = sub.add_parser("test", help="generate and run a test for every method")
