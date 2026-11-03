@@ -1,0 +1,62 @@
+site_name: secpatch
+site_description: Automated Vulnerability Patching — DevSecOps AI
+site_url: https://pymite6941.github.io/github-bot-app-security-tester/
+repo_url: https://github.com/PyMite6941/github-bot-app-security-tester
+edit_uri: edit/master/docs/
+copyright: Copyright &copy; 2026 PyMite6941
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+  primary: deep orange
+  accent: deep orange
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.code.annotate
+    - content.action.edit
+    - content.action.view
+    - content.tooltips
+    - header.autohide
+
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - AI Integration: ai-integration.md
+  - Architecture: architecture.md
+
+extra_css:
+  - assets/extra.css
+
+extra_javascript:
+  - assets/extra.js
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences

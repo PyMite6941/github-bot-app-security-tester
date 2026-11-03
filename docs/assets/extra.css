@@ -1,0 +1,50 @@
+/* secpatch documentation — custom styling to match prompt-guard aesthetic */
+:root {
+  --md-primary-fg-color: #ff6f00;
+  --md-accent-fg-color: #ff6f00;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #ff8a33;
+  --md-accent-fg-color: #ff8a33;
+}
+
+/* Header */
+.md-header {
+  background: #0b1015;
+  border-bottom: 1px solid #1f2937;
+}
+
+/* Tabs */
+.md-tabs {
+  background: #0b1015;
+  border-bottom: 1px solid #1f2937;
+}
+
+/* Footer */
+.md-footer {
+  background: #0b1015;
+  border-top: 1px solid #1f2937;
+}
+
+/* Code blocks */
+.md-typeset pre.code {
+  background: #0d1117;
+  border: 1px solid #30363d;
+}
+
+/* Admonitions */
+.admonition {
+  border-left: 4px solid var(--md-accent-fg-color);
+}
+
+/* Anchor links */
+.md-typeset a {
+  color: var(--md-primary-fg-color);
+}
+
+/* Search */
+.md-search__input {
+  background: #161b22;
+  border: 1px solid #30363d;
+}

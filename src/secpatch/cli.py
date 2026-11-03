@@ -7,9 +7,14 @@ import os
 import sys
 
 from .ai_client import AIClient
+from .advanced_detector import AdvancedDetector
+from .ai_orchestrator import AIOrchestrator
 from .commit_analyzer import CommitAnalyzer
 from .detector import Detector, SEVERITY_ORDER
+from .method_analyzer import analyze_path
 from .patcher import Patcher
+from .sandbox import Sandbox
+from .test_generator import TestGenerator
 
 
 def _print_findings(findings) -> str:
@@ -24,7 +29,7 @@ def _print_findings(findings) -> str:
     return "\n".join(lines)
 
 
-def _scan(detector: Detector, path: str):
+def _scan(detector, path: str):
     """Scan a file or directory, returning findings with stable paths."""
     if os.path.isfile(path):
         return detector.scan_file(path)
@@ -40,7 +45,7 @@ def _abs_file(scan_path_arg: str, finding_file: str) -> str:
 
 
 def cmd_scan(args) -> int:
-    detector = Detector()
+    detector = AdvancedDetector()
     findings = _scan(detector, args.path)
     min_sev = SEVERITY_ORDER.get(args.severity, 0)
     findings = [f for f in findings if SEVERITY_ORDER.get(f.severity, 0) >= min_sev]
@@ -61,7 +66,7 @@ def cmd_scan(args) -> int:
 def cmd_patch(args) -> int:
     ai = AIClient() if args.ai else None
     patcher = Patcher(ai_client=ai)
-    detector = Detector()
+    detector = AdvancedDetector()
     findings = _scan(detector, args.path)
     if not findings:
         print("No vulnerabilities found - nothing to patch.")
@@ -114,7 +119,7 @@ def cmd_commits(args) -> int:
 
 
 def cmd_ci(args) -> int:
-    detector = Detector()
+    detector = AdvancedDetector()
     findings = _scan(detector, args.path)
     min_sev = SEVERITY_ORDER.get(args.severity, 0)
     findings = [f for f in findings if SEVERITY_ORDER.get(f.severity, 0) >= min_sev]
@@ -123,6 +128,68 @@ def cmd_ci(args) -> int:
         print(_print_findings(findings))
         return 1
     print("CI: no vulnerabilities found.")
+    return 0
+
+
+def cmd_test(args) -> int:
+    generator = TestGenerator(args.path, timeout=args.timeout)
+    results = generator.run_all()
+    total_found = 0
+    total_tested = 0
+    failed = 0
+    for r in results:
+        total_found += r.methods_found
+        total_tested += r.methods_tested
+        status = "passed" if r.result.exit_code == 0 else "failed"
+        if r.result.exit_code != 0:
+            failed += 1
+        print(
+            f"{r.module}: {r.methods_found} method(s), {status} "
+            f"(exit {r.result.exit_code})"
+        )
+        if r.result.stderr and r.result.exit_code != 0:
+            print(f"    {r.result.stderr[-400:]}")
+    print(
+        f"\n{total_found} method(s) across {len(results)} module(s); "
+        f"{failed} module(s) had test failures."
+    )
+    return 1 if failed else 0
+
+
+def cmd_orchestrate(args) -> int:
+    ai = AIClient() if args.ai else None
+    orchestrator = AIOrchestrator(ai_client=ai, max_iterations=args.iterations)
+    if not orchestrator.available() and args.ai:
+        print("[orchestrate] --ai requested but SECPATCH_AI_API_KEY is not set; using templates only")
+    detector = AdvancedDetector()
+    findings = _scan(detector, args.path)
+    min_sev = SEVERITY_ORDER.get(args.severity, 0)
+    findings = [f for f in findings if SEVERITY_ORDER.get(f.severity, 0) >= min_sev]
+    if not findings:
+        print("No vulnerabilities found - nothing to orchestrate.")
+        return 0
+
+    applied = 0
+    for f in findings:
+        abs_file = _abs_file(args.path, f.file)
+        if not os.path.exists(abs_file):
+            print(f"[skip] {f.file}:{f.line} - file not found")
+            continue
+        result = orchestrator.patch_with_validation(
+            args.path if os.path.isdir(args.path) else os.path.dirname(args.path),
+            f.file,
+            f,
+            test_cmd=args.test_cmd,
+        )
+        if result["applied"]:
+            applied += 1
+            print(
+                f"[patched] {f.file}:{f.line} [{f.rule_id}] "
+                f"({result['iterations']} iteration(s)) - {result['message']}"
+            )
+        else:
+            print(f"[revert] {f.file}:{f.line} [{f.rule_id}] - {result['message']}")
+    print(f"\n{applied} patch(es) applied and validated.")
     return 0
 
 
@@ -158,6 +225,24 @@ def build_parser() -> argparse.ArgumentParser:
     p_ci.add_argument("--severity", default="high",
                       choices=["info", "low", "medium", "high", "critical"])
     p_ci.set_defaults(func=cmd_ci)
+
+    p_test = sub.add_parser("test", help="generate and run a test for every method")
+    p_test.add_argument("path", default=".")
+    p_test.add_argument("--timeout", type=int, default=120,
+                        help="sandbox command timeout in seconds")
+    p_test.set_defaults(func=cmd_test)
+
+    p_orch = sub.add_parser("orchestrate", help="AI-powered patch with context + iteration")
+    p_orch.add_argument("path")
+    p_orch.add_argument("--ai", action="store_true",
+                        help="use AI API (requires SECPATCH_AI_API_KEY)")
+    p_orch.add_argument("--test-cmd", default=None,
+                        help="command to run tests after applying (e.g. 'pytest -q')")
+    p_orch.add_argument("--severity", default="info",
+                        choices=["info", "low", "medium", "high", "critical"])
+    p_orch.add_argument("--iterations", type=int, default=3,
+                        help="max AI retry iterations on validation failure")
+    p_orch.set_defaults(func=cmd_orchestrate)
 
     return parser
 
