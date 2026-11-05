@@ -1,0 +1,26 @@
+{
+  "name": "secpatch-bot",
+  "description": "Automated Vulnerability Patching / DevSecOps AI bot. Scans repositories for security vulnerabilities, drafts AI-powered patches, validates them in a sandbox, and reports findings as PR comments or issues.",
+  "url": "https://github.com/PyMite6941/github-bot-app-security-tester",
+  "public": false,
+  "default_events": [
+    "pull_request",
+    "push",
+    "schedule",
+    "code_scanning_alert",
+    "workflow_run"
+  ],
+  "default_permissions": {
+    "contents": "read",
+    "pull_requests": "write",
+    "issues": "write",
+    "security_events": "write",
+    "checks": "write",
+    "metadata": "read"
+  },
+  "webhook_url": "https://secpatch-bot.pymite6941.workers.dev/webhook",
+  "redirect_url": "https://github.com/apps/secpatch-bot",
+  "callback_url": "https://github.com/apps/secpatch-bot/setup",
+  "setup_url": "https://github.com/apps/secpatch-bot/setup",
+  "description": "SecPatch Bot automatically finds security vulnerabilities in your codebase, drafts patches using AI, validates them in a sandbox, and reports findings directly in GitHub PRs and issues."
+}

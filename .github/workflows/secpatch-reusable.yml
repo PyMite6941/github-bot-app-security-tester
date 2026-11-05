@@ -1,31 +1,33 @@
-name: SecPatch Bot - Automated Vulnerability Patching
+name: SecPatch Bot - Reusable Workflow
 
 on:
-  push:
-    branches: [master, main]
-  pull_request:
-    branches: [master, main]
-  schedule:
-    - cron: "0 2 * * *"  # daily scan
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      mode:
-        description: "Bot mode"
-        required: true
-        default: "report-only"
-        type: choice
-        options:
-          - report-only
-          - auto-apply
-
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
-  security-events: write
+      severity:
+        description: "Minimum severity to report"
+        required: false
+        type: string
+        default: "high"
+      test_cmd:
+        description: "Test command to run after patching"
+        required: false
+        type: string
+        default: "npm test"
+      fail_on_findings:
+        description: "Fail the workflow when findings are detected"
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      SECPATCH_AI_API_KEY:
+        required: false
+      SECPATCH_AI_BASE_URL:
+        required: false
+      SECPATCH_AI_MODEL:
+        required: false
 
 jobs:
-  secpatch-bot:
+  secpatch:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -43,7 +45,7 @@ jobs:
       - name: Run unit tests
         run: npm test
 
-      - name: Run SecPatch bot scan
+      - name: Run SecPatch scan
         id: scan
         env:
           SECPATCH_AI_API_KEY: ${{ secrets.SECPATCH_AI_API_KEY }}
@@ -51,40 +53,23 @@ jobs:
           SECPATCH_AI_MODEL: ${{ secrets.SECPATCH_AI_MODEL }}
           SECPATCH_LOG_LEVEL: info
         run: |
-          node src/cli.js ci . --severity high --log-file secpatch.log --log-level info --format json > secpatch-scan.json || true
-          echo "scan_complete=true" >> $GITHUB_OUTPUT
+          node src/cli.js scan . --severity ${{ inputs.severity }} --format json > secpatch-scan.json || true
 
       - name: Generate method-level tests
-        id: testgen
-        env:
-          SECPATCH_LOG_LEVEL: info
         run: |
           node src/cli.js test . --log-file secpatch.log --log-level info --timeout 180 || true
 
-      - name: Draft and validate patches (AI)
-        if: env.SECPATCH_AI_API_KEY != ''
-        id: patch
-        env:
-          SECPATCH_AI_API_KEY: ${{ secrets.SECPATCH_AI_API_KEY }}
-          SECPATCH_AI_BASE_URL: ${{ secrets.SECPATCH_AI_BASE_URL }}
-          SECPATCH_AI_MODEL: ${{ secrets.SECPATCH_AI_MODEL }}
-          SECPATCH_LOG_LEVEL: info
-        run: |
-          node src/cli.js patch . --ai --test-cmd "npm test" --draft-only --log-file secpatch.log --log-level info --format json > secpatch-patches.json || true
-
-      - name: Upload SecPatch artifacts
+      - name: Upload scan results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: secpatch-bot-artifacts
+          name: secpatch-scan-results
           path: |
             secpatch.log
             secpatch-scan.json
-            secpatch-patches.json
-          retention-days: 7
 
       - name: Post PR comment with findings
-        if: github.event_name == 'pull_request' && steps.scan.outputs.scan_complete == 'true'
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -110,10 +95,10 @@ jobs:
               )
             ).join('\n');
             body.push('');
-            body.push('See the **SecPatch bot artifacts** for full scan logs and draft patches.');
+            body.push('See workflow artifacts for full scan logs.');
             if (critical.length > 0) {
               body.push('');
-              body.push('⚠️ Critical vulnerabilities detected. Review and apply patches from the artifacts.');
+              body.push('⚠️ Critical vulnerabilities detected — review draft patches in the artifacts.');
             }
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -131,16 +116,14 @@ jobs:
             let findings = [];
             try {
               findings = JSON.parse(fs.readFileSync('secpatch-scan.json', 'utf8'));
-            } catch (e) {
-              core.warning('Could not parse secpatch-scan.json');
-            }
+            } catch (e) {}
             const critical = findings.filter(f => f.severity === 'critical');
             if (critical.length === 0) return;
             const titles = critical.map(f => `- \`${f.ruleId}\` in \`${f.file}\`:${f.line} — ${f.title}`).join('\n');
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `🚨 SecPatch Bot: ${critical.length} critical vulnerability(ies) detected`,
-              body: `## Critical Vulnerabilities Detected\n\n${titles}\n\nReview draft patches in the workflow artifacts and apply them via \`secpatch patch --ai --test-cmd "npm test"\`.`,
+              title: `🚨 SecPatch Bot: ${critical.length} critical vulnerability(ies)`,
+              body: `## Critical Vulnerabilities\n\n${titles}\n\nApply patches via \`secpatch orchestrate . --ai --test-cmd "${{ inputs.test_cmd }}"\`.`,
               labels: ['security', 'critical', 'secpatch-bot'],
             });

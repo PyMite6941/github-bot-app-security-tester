@@ -1,4 +1,4 @@
-name: SecPatch - Automated Vulnerability Scanning
+name: SecPatch Bot - CI Scan
 
 on:
   push:
@@ -6,45 +6,18 @@ on:
   pull_request:
     branches: [master, main]
   schedule:
-    - cron: "0 2 * * *"  # daily scan
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   secpatch:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install secpatch
-        run: |
-          pip install -e .
-          pip install pytest
-
-      - name: Scan for vulnerabilities
-        id: scan
-        run: |
-          secpatch scan . --severity high --format json > scan-results.json || true
-
-      - name: Show findings summary (report-only)
-        run: |
-          secpatch ci . --severity high || true
-
-      - name: Upload scan results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: secpatch-scan-results
-          path: scan-results.json
-
-      # Optional: auto-draft patches when an AI key is configured.
-      # Add SECPATCH_AI_API_KEY (and optionally SECPATCH_AI_BASE_URL, SECPATCH_AI_MODEL)
-      # as repository secrets to enable this step.
-      - name: Draft and validate patches (AI)
-        if: env.SECPATCH_AI_API_KEY != ''
-        run: |
-          secpatch patch . --ai --test-cmd "pytest -q" --draft-only > patch-drafts.txt || true
+    uses: ./.github/workflows/secpatch-reusable.yml
+    with:
+      severity: high
+      fail_on_findings: false
+    secrets: inherit
