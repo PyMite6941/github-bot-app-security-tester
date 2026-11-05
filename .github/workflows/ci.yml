@@ -1,0 +1,42 @@
+name: SecPatch - Node.js CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Self-scan for vulnerabilities
+        id: scan
+        run: |
+          node src/cli.js scan . --severity high --format json > scan-results.json || true
+
+      - name: Show findings summary
+        run: |
+          node src/cli.js ci . --severity high || true
+
+      - name: Upload scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: secpatch-scan-results
+          path: scan-results.json

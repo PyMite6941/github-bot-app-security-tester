@@ -1,0 +1,36 @@
+{
+  "name": "secpatch",
+  "version": "0.2.0",
+  "description": "CI/CD-friendly DevSecOps AI that finds security vulnerabilities, drafts patches, validates them in a sandbox, and tests every method.",
+  "main": "src/cli.js",
+  "bin": {
+    "secpatch": "src/cli.js"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "jest",
+    "scan": "node src/cli.js scan . --severity high",
+    "patch": "node src/cli.js patch . --test-cmd \"npm test\"",
+    "orchestrate": "node src/cli.js orchestrate . --test-cmd \"npm test\"",
+    "lint": "node src/cli.js ci . --severity high --fail-on-findings || true"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PyMite6941/github-bot-app-security-tester.git"
+  },
+  "keywords": ["devsecops", "security", "sast", "patch", "cicd", "ai", "github", "npm"],
+  "author": "PyMite6941",
+  "license": "MIT",
+  "dependencies": {
+    "acorn": "^8.11.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
