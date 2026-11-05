@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "secpatch configuration schema",
+  "type": "object",
+  "properties": {
+    "version": { "type": "string" },
+    "logging": {
+      "type": "object",
+      "properties": {
+        "level": { "type": "string", "enum": ["debug", "info", "warn", "error"] },
+        "outputs": { "type": "array", "items": { "type": "string" } },
+        "file": { "type": "string" },
+        "format": { "type": "string", "enum": ["json", "text"] }
+      },
+      "required": ["level"]
+    },
+    "scanner": {
+      "type": "object",
+      "properties": {
+        "minSeverity": { "type": "string", "enum": ["info", "low", "medium", "high", "critical"] },
+        "skipDirs": { "type": "array", "items": { "type": "string" } },
+        "skipExtensions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "patch": {
+      "type": "object",
+      "properties": {
+        "useAI": { "type": "boolean" },
+        "maxIterations": { "type": "integer", "minimum": 1 },
+        "testCmd": { "type": "string" },
+        "timeoutSeconds": { "type": "integer" },
+        "draftOnly": { "type": "boolean" },
+        "failOnFindings": { "type": "boolean" },
+        "templateOnly": { "type": "boolean" }
+      }
+    },
+    "ai": {
+      "type": "object",
+      "properties": {
+        "provider": { "type": "string" },
+        "apiKeyEnv": { "type": "string" },
+        "baseUrlEnv": { "type": "string" },
+        "modelEnv": { "type": "string" },
+        "defaultBaseUrl": { "type": "string" },
+        "defaultModel": { "type": "string" },
+        "timeoutSeconds": { "type": "integer" },
+        "retry": {
+          "type": "object",
+          "properties": {
+            "maxAttempts": { "type": "integer", "minimum": 1 },
+            "backoffMs": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "properties": {
+        "generateForEveryMethod": { "type": "boolean" },
+        "framework": { "type": "string" },
+        "timeoutSeconds": { "type": "integer" }
+      }
+    },
+    "bot": {
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "enum": ["report-only", "auto-apply"] },
+        "postCommentOnPR": { "type": "boolean" },
+        "createIssueOnCritical": { "type": "boolean" },
+        "autoApplyPatches": { "type": "boolean" }
+      }
+    }
+  },
+  "additionalProperties": true
+}

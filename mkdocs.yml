@@ -39,6 +39,8 @@ nav:
   - Home: index.md
   - Usage: usage.md
   - AI Integration: ai-integration.md
+  - Algorithm: algorithm.md
+  - Bot Setup: bot-setup.md
   - Architecture: architecture.md
 
 extra_css:

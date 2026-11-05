@@ -1,0 +1,48 @@
+{
+  "$schema": "./secpatch.schema.json",
+  "version": "1.0",
+  "logging": {
+    "level": "info",
+    "outputs": ["console", "file"],
+    "file": "secpatch.log",
+    "format": "json"
+  },
+  "scanner": {
+    "minSeverity": "high",
+    "skipDirs": [".git", "node_modules", "__pycache__", ".venv", "venv", ".tox", ".egg-info", ".next", ".cache"],
+    "skipExtensions": [".md", ".rst", ".txt", ".html", ".htm", ".css", ".json", ".yml", ".yaml", ".toml", ".cfg", ".ini", ".lock"]
+  },
+  "patch": {
+    "useAI": true,
+    "maxIterations": 3,
+    "testCmd": "npm test",
+    "timeoutSeconds": 120,
+    "draftOnly": false,
+    "failOnFindings": false,
+    "templateOnly": false
+  },
+  "ai": {
+    "provider": "github-models",
+    "apiKeyEnv": "SECPATCH_AI_API_KEY",
+    "baseUrlEnv": "SECPATCH_AI_BASE_URL",
+    "modelEnv": "SECPATCH_AI_MODEL",
+    "defaultBaseUrl": "https://models.inference.ai.azure.com",
+    "defaultModel": "gpt-4o",
+    "timeoutSeconds": 60,
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMs": 2000
+    }
+  },
+  "test": {
+    "generateForEveryMethod": true,
+    "framework": "jest",
+    "timeoutSeconds": 180
+  },
+  "bot": {
+    "mode": "report-only",
+    "postCommentOnPR": true,
+    "createIssueOnCritical": true,
+    "autoApplyPatches": false
+  }
+}
